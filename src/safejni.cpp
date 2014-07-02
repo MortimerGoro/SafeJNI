@@ -1,3 +1,8 @@
+/* 
+ * SafeJNI is licensed under MIT licensed. See LICENSE.md file for more information.
+ * Copyright (c) 2014 MortimerGoro
+*/
+
 #include <jni.h>
 #include <android/log.h>
 #include <cstdlib>

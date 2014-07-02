@@ -1,10 +1,7 @@
-//
-//  jni.h
-//  IDTKAndroidApplicationFramework
-//
-//  Created by Imanol Fernandez Gorostizaga on 22/10/13.
-//  Copyright (c) 2013 CPP. All rights reserved.
-//
+/* 
+ * SafeJNI is licensed under MIT licensed. See LICENSE.md file for more information.
+ * Copyright (c) 2014 MortimerGoro
+*/
 
 #pragma once
 
