@@ -1,21 +1,21 @@
 MY_LOCAL_PATH := $(call my-dir)
 
-LOCAL_PATH := $(MY_LOCAL_PATH)/../../bin
+LOCAL_PATH := $(MY_LOCAL_PATH)/../../dist
 include $(CLEAR_VARS)
 LOCAL_MODULE := safejni
 LOCAL_SRC_FILES := \
-	$(TARGET_ARCH_ABI)/libsafejni.a
-include $(PREBUILT_STATIC_LIBRARY)
+	$(TARGET_ARCH_ABI)/libsafejni.so
+include $(PREBUILT_SHARED_LIBRARY)
 
 LOCAL_PATH := $(MY_LOCAL_PATH)
 include $(CLEAR_VARS)
 LOCAL_LDLIBS := \
 	-llog \
 	-lc
-LOCAL_STATIC_LIBRARIES := \
+LOCAL_SHARED_LIBRARIES := \
 	safejni
 LOCAL_C_INCLUDES := \
-	$(MY_LOCAL_PATH)/../../bin
+	$(MY_LOCAL_PATH)/../../dist
 LOCAL_SRC_FILES := \
 	main.cpp
 LOCAL_CPPFLAGS := \
