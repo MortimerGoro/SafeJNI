@@ -1,6 +1,6 @@
 MY_LOCAL_PATH := $(call my-dir)
 
-LOCAL_PATH := $(MY_LOCAL_PATH)/../../dist
+LOCAL_PATH := $(MY_LOCAL_PATH)/../../dist/libs
 include $(CLEAR_VARS)
 LOCAL_MODULE := safejni
 LOCAL_SRC_FILES := \
