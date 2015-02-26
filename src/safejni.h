@@ -89,6 +89,7 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
         static std::string toString(jstring str);
         static std::vector<std::string> toVectorString(jobjectArray array);
         static std::vector<uint8_t> toVectorByte(jbyteArray);
+        static std::vector<jobject> toVectorJObject(jobjectArray);
         
         static SPJNIMethodInfo getStaticMethodInfo(const std::string& className, const std::string& methodName, const char * signature);
         static SPJNIMethodInfo getMethodInfo(const std::string& className, const std::string& methodName, const char * signature);
@@ -136,6 +137,12 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
     template<>
     struct CPPToJNIConversor<std::vector<uint8_t>> {
         using JNIType = CompileTimeString<'[','B'>;
+        inline static jbyteArray convert(const std::vector<uint8_t> & obj) { return Utils::toJObjectArray(obj);}
+    };
+
+    template<>
+    struct CPPToJNIConversor<std::vector<jobject>> {
+        using JNIType = CompileTimeString<'[','L','j','a','v','a','/','l','a','n','g','/','O','b','j','e','c','t',';'>;
         inline static jbyteArray convert(const std::vector<uint8_t> & obj) { return Utils::toJObjectArray(obj);}
     };
     
@@ -222,6 +229,11 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
     struct JNIToCPPConversor<std::vector<uint8_t>> {
         inline static std::vector<uint8_t> convert(jobject obj) { return Utils::toVectorByte((jbyteArray)obj);}
     };
+
+    template<>
+    struct JNIToCPPConversor<std::vector<jobject>> {
+        inline static std::vector<jobject> convert(jobject obj) { return Utils::toVectorJObject((jobjectArray)obj);}
+    };
     
     
 #pragma mark JNI Call Template Specializations
@@ -243,6 +255,13 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
                 env->DeleteLocalRef(obj);
             return result;
         }
+        static T getField(JNIEnv * env, jobject instance, jfieldID fid) {
+            auto obj = env->GetObjectField(instance, fid);
+            T result = JNIToCPPConversor<T>::convert(obj);
+            if (obj) 
+                env->DeleteLocalRef(obj);
+            return result;
+        }
     };
     
     //generic pointer implementation (using jlong types)
@@ -253,6 +272,9 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
         }
         static T* callInstance(JNIEnv *env, jobject instance, jmethodID method, Args... v) {
             return (T*)env->CallLongMethod(instance, method, v...);
+        }
+        static T* getField(JNIEnv * env, jobject instance, jfieldID fid) {
+            return (T*)env->GetLongField(instance, fid);
         }
     };
     
@@ -276,6 +298,10 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
         static bool callInstance(JNIEnv *env, jobject instance, jmethodID method, Args... v) {
             return env->CallBooleanMethod(instance, method, v...);
         }
+
+        static bool getField(JNIEnv * env, jobject instance, jfieldID fid) {
+            return env->GetBooleanField(instance, fid);
+        }
     };
     
     template <typename... Args>
@@ -285,6 +311,9 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
         }
         static int8_t callInstance(JNIEnv *env, jobject instance, jmethodID method, Args... v) {
             return env->CallByteMethod(instance, method, v...);
+        }
+        static int8_t getField(JNIEnv * env, jobject instance, jfieldID fid) {
+            return env->GetByteField(instance, fid);
         }
     };
     
@@ -296,6 +325,9 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
         static uint8_t callInstance(JNIEnv *env, jobject instance, jmethodID method, Args... v) {
             return env->CallCharMethod(instance, method, v...);
         }
+        static uint8_t getField(JNIEnv * env, jobject instance, jfieldID fid) {
+            return env->GetCharField(instance, fid);
+        }
     };
     
     template <typename... Args>
@@ -305,6 +337,9 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
         }
         static int16_t callInstance(JNIEnv *env, jobject instance, jmethodID method, Args... v) {
             return env->CallShortMethod(instance, method, v...);
+        }
+        static int16_t getField(JNIEnv * env, jobject instance, jfieldID fid) {
+            return env->GetShortField(instance, fid);
         }
     };
     
@@ -316,6 +351,9 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
         static int32_t callInstance(JNIEnv *env, jobject instance, jmethodID method, Args... v) {
             return env->CallIntMethod(instance, method, v...);
         }
+        static int32_t getField(JNIEnv * env, jobject instance, jfieldID fid) {
+            return env->GetIntField(instance, fid);
+        }
     };
     
     template <typename... Args>
@@ -325,6 +363,9 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
         }
         static int64_t callInstance(JNIEnv *env, jobject instance, jmethodID method, Args... v) {
             return env->CallLongMethod(instance, method, v...);
+        }
+        static int64_t getField(JNIEnv * env, jobject instance, jfieldID fid) {
+            return env->GetLongField(instance, fid);
         }
     };
     
@@ -336,6 +377,9 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
         static float callInstance(JNIEnv *env, jobject instance, jmethodID method, Args... v) {
             return env->CallFloatMethod(instance, method, v...);
         }
+        static float getField(JNIEnv * env, jobject instance, jfieldID fid) {
+            return env->GetFloatField(instance, fid);
+        }
     };
     
     template <typename... Args>
@@ -345,6 +389,9 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
         }
         static double callInstance(JNIEnv *env, jobject instance, jmethodID method, Args... v) {
             return env->CallDoubleMethod(instance, method, v...);
+        }
+        static double getField(JNIEnv * env, jobject instance, jfieldID fid) {
+            return env->GetDoubleField(instance, fid);
         }
     };
     
@@ -461,6 +508,18 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
         SPJNIMethodInfo methodInfo = Utils::getMethodInfo(className, methodName, getJNISignature<T,Args...>(v...));
         JNIParamDestructor<nargs> paramDestructor(jniEnv);
         return JNICaller<T,decltype(CPPToJNIConversor<Args>::convert(v))...>::callInstance(jniEnv, instance, methodInfo->methodId, JNIParamConversor<Args>(v, paramDestructor)...);
+    }
+
+    template<typename T> T getField(jobject instance, const std::string & propertyName)
+    {
+        JNIEnv* jniEnv = Utils::getJNIEnvAttach();
+        jclass clazz = jniEnv->GetObjectClass(instance);
+        const char * signature = Concatenate<typename CPPToJNIConversor<T>::JNIType,
+                                            CompileTimeString<'\0'>> //return type signature
+                                            ::Result::value();
+        jfieldID fid = jniEnv->GetFieldID(clazz, propertyName.c_str(), signature);
+        return JNICaller<T>::getField(jniEnv, instance, fid);
+
     }
     
     //jobject global ref wrapper class

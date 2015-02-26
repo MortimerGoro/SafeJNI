@@ -135,6 +135,20 @@ namespace safejni {
         JNI_EXCEPTION_CHECK
         return result;
     }
+
+    std::vector<jobject> Utils::toVectorJObject(jobjectArray array)
+    {
+        std::vector<jobject> result;
+        if (array) {
+            jint length = env->GetArrayLength(array);
+            
+            for (int i = 0; i < length; i++) {
+                jobject valueJObject = env->GetObjectArrayElement(array, i);
+                result.push_back(valueJObject);
+            }
+        }
+        return result;
+    }
     
 	SPJNIMethodInfo Utils::getStaticMethodInfo(const string& className, const string& methodName, const char * signature)
     {
