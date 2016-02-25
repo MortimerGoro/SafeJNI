@@ -95,6 +95,26 @@ namespace safejni {
         JNI_EXCEPTION_CHECK
         return jba;
     }
+
+    jobject Utils::toHashMap(const std::map<std::string, std::string> & data)
+    {
+        jclass classId = env->FindClass("java/util/HashMap");
+        jmethodID methodId = env->GetMethodID(classId, "<init>", "()V");
+        jobject hashmap = env->NewObject(classId, methodId);
+        
+        methodId = env->GetMethodID(classId, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+        for (auto & item : data)
+        {
+            jstring key = env->NewStringUTF(item.first.c_str());
+            jstring value = env->NewStringUTF(item.second.c_str());
+            env->CallObjectMethod(hashmap, methodId, key, value);
+            
+            env->DeleteLocalRef(key);
+            env->DeleteLocalRef(value);
+        }
+        JNI_EXCEPTION_CHECK
+        return hashmap;
+    }
     
     std::string Utils::toString(jstring str)
     {

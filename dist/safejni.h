@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <map>
 #include <exception>
 #include <stdint.h>
 
@@ -85,6 +86,7 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
         }
         static jobjectArray toJObjectArray(const std::vector<std::string> & data);
         static jbyteArray toJObjectArray(const std::vector<uint8_t> & data);
+        static jobject toHashMap(const std::map<std::string, std::string> & data);
 
         static std::string toString(jstring str);
         static std::vector<std::string> toVectorString(jobjectArray array);
@@ -144,6 +146,12 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
     struct CPPToJNIConversor<std::vector<jobject>> {
         using JNIType = CompileTimeString<'[','L','j','a','v','a','/','l','a','n','g','/','O','b','j','e','c','t',';'>;
         inline static jbyteArray convert(const std::vector<uint8_t> & obj) { return Utils::toJObjectArray(obj);}
+    };
+
+    template<>
+    struct CPPToJNIConversor<std::map<std::string, std::string>> {
+        using JNIType = CompileTimeString<'[','L','j','a','v','a','/','u','t','i','l','/','H','a','s','h','M','a','p'>;
+        inline static jobject convert(const std::map<std::string,std::string> & obj) { return Utils::toHashMap(obj);}
     };
     
     //Add more types here
