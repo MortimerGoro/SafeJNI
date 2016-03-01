@@ -150,7 +150,7 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
 
     template<>
     struct CPPToJNIConversor<std::map<std::string, std::string>> {
-        using JNIType = CompileTimeString<'[','L','j','a','v','a','/','u','t','i','l','/','H','a','s','h','M','a','p'>;
+        using JNIType = CompileTimeString<'L','j','a','v','a','/','u','t','i','l','/','H','a','s','h','M','a','p'>;
         inline static jobject convert(const std::map<std::string,std::string> & obj) { return Utils::toHashMap(obj);}
     };
     
@@ -540,6 +540,15 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
                 JNIEnv* jniEnv = Utils::getJNIEnv();
                 jniEnv->DeleteGlobalRef(instance);
             }
+        }
+        
+        static std::shared_ptr<JNIObject> create(jobject obj, const std::string & className)
+        {
+            JNIObject * result = new JNIObject();
+            JNIEnv* jniEnv = Utils::getJNIEnvAttach();
+            result->instance = jniEnv->NewGlobalRef(obj);
+            result->jniClassName = className;
+            return std::shared_ptr<JNIObject>(result);
         }
         
         template<typename... Args> static std::shared_ptr<JNIObject> create(const std::string & className, Args ...v)

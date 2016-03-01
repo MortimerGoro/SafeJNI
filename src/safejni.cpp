@@ -112,6 +112,7 @@ namespace safejni {
             env->DeleteLocalRef(key);
             env->DeleteLocalRef(value);
         }
+        env->DeleteLocalRef(classId);
         JNI_EXCEPTION_CHECK
         return hashmap;
     }
@@ -123,8 +124,11 @@ namespace safejni {
         }
         jboolean isCopy;
         const char* chars = env->GetStringUTFChars(str, &isCopy);
-        std::string s = chars;
-        env->ReleaseStringUTFChars(str, chars);
+        std::string s;
+        if (chars) {
+            s = chars;
+            env->ReleaseStringUTFChars(str, chars);
+        }
         JNI_EXCEPTION_CHECK
         return s;
     }
@@ -137,10 +141,11 @@ namespace safejni {
             
             for (int i = 0; i < length; i++) {
                 jobject valueJObject = env->GetObjectArrayElement(array, i);
-                result.push_back(toString((jstring)valueJObject));
-                env->DeleteLocalRef(valueJObject);
-            }
+                    result.push_back(toString((jstring)valueJObject));
+                    env->DeleteLocalRef(valueJObject);
+                }
         }
+        JNI_EXCEPTION_CHECK
         return result;
     }
     
