@@ -91,6 +91,7 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
         static std::string toString(jstring str);
         static std::vector<std::string> toVectorString(jobjectArray array);
         static std::vector<uint8_t> toVectorByte(jbyteArray);
+        static std::vector<float> toVectorFloat(jfloatArray);
         static std::vector<jobject> toVectorJObject(jobjectArray);
         
         static SPJNIMethodInfo getStaticMethodInfo(const std::string& className, const std::string& methodName, const char * signature);

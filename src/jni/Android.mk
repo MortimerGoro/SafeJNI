@@ -7,6 +7,6 @@ LOCAL_CPPFLAGS := \
 	-fexceptions \
 	-std=c++11 \
 	-D__GXX_EXPERIMENTAL_CXX0X__
-LOCAL_LDLIBS := -llog
+LOCAL_LDLIBS := -llog -latomic
 LOCAL_MODULE := safejni
 include $(BUILD_SHARED_LIBRARY)

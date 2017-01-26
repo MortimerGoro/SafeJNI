@@ -161,6 +161,18 @@ namespace safejni {
         return result;
     }
 
+    std::vector<float> Utils::toVectorFloat(jfloatArray array)
+    {
+        if (!array) {
+            return std::vector<float>();
+        }
+        jsize size = env->GetArrayLength(array);
+        std::vector<float> result(size);
+        env->GetFloatArrayRegion(array, 0, size, (jfloat*)&result[0]);
+        JNI_EXCEPTION_CHECK
+        return result;
+    }
+
     std::vector<jobject> Utils::toVectorJObject(jobjectArray array)
     {
         std::vector<jobject> result;
