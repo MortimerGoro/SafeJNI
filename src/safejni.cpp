@@ -241,6 +241,43 @@ namespace safejni {
             throw new JNIException(exceptionMessage);
         }
     }
+    
+    // JNIObject
+    JNIObject::~JNIObject() {
+        if (instance) {
+            JNIEnv* jniEnv = Utils::getJNIEnv();
+            if (globalRef) {
+                jniEnv->DeleteGlobalRef(instance);
+            }
+            else {
+                jniEnv->DeleteLocalRef(instance);
+            }
+        }
+    }
+    
+    void JNIObject::makeGlobalRef() {
+        if (!globalRef) {
+            this->instance = Utils::getJNIEnvAttach()->NewGlobalRef(this->instance);
+            globalRef = true;
+        }
+    }
+    
+    std::shared_ptr<JNIObject> JNIObject::create(jobject obj, const std::string & className)
+    {
+        JNIObject * result = new JNIObject();
+        JNIEnv* jniEnv = Utils::getJNIEnvAttach();
+        result->jniClassName = className;
+        result->instance = jniEnv->NewGlobalRef(obj);
+        result->makeGlobalRef();
+        return std::shared_ptr<JNIObject>(result);
+    }
+    
+    std::shared_ptr<JNIObject> JNIObject::createWeak(jobject obj)
+    {
+        JNIObject * result = new JNIObject();
+        result->instance = obj;
+        return std::shared_ptr<JNIObject>(result);
+    }
 }
 
 extern "C"
