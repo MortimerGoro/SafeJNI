@@ -100,7 +100,27 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
     };
 
     void init(JavaVM * javaVM, JNIEnv * env);
+    
+    class JNIObject {
+    public:
+        ~JNIObject();
+        void makeGlobalRef();
+        static std::shared_ptr<JNIObject> create(jobject obj, const std::string & className);
+        static std::shared_ptr<JNIObject> createWeak(jobject obj);
+        template<typename... Args> static std::shared_ptr<JNIObject> create(const std::string & className, Args ...v);
+        template<typename T = void,typename... Args> inline T call(const std::string & methodName, Args... v);
+        
+        std::string jniClassName;
+        jobject instance = nullptr;
+    protected:
+        bool globalRef = false;
+    };
 
+    class JNIObject;
+    typedef std::shared_ptr<JNIObject> JNIObjectPtr;
+    // For backwards compatibility
+    typedef std::shared_ptr<JNIObject> SPJNIObject;
+    
 #define JNI_EXCEPTION_CHECK safejni::Utils::checkException();
     
 #pragma mark C++ To JNI conversion templates
@@ -144,6 +164,18 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
     };
 
     template<>
+    struct CPPToJNIConversor<jobject> {
+        using JNIType = CompileTimeString<'L','j','a','v','a','/','l','a','n','g','/','O','b','j','e','c','t',';'>;
+        inline static jobject convert(jobject obj) { return obj;}
+    };
+    
+    template<>
+    struct CPPToJNIConversor<JNIObjectPtr> {
+        using JNIType = CompileTimeString<'L','j','a','v','a','/','l','a','n','g','/','O','b','j','e','c','t',';'>;
+        inline static jobject convert(const JNIObjectPtr & obj) { return obj->instance;}
+    };
+    
+    template<>
     struct CPPToJNIConversor<std::vector<jobject>> {
         using JNIType = CompileTimeString<'[','L','j','a','v','a','/','l','a','n','g','/','O','b','j','e','c','t',';'>;
         inline static jbyteArray convert(const std::vector<uint8_t> & obj) { return Utils::toJObjectArray(obj);}
@@ -151,7 +183,7 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
 
     template<>
     struct CPPToJNIConversor<std::map<std::string, std::string>> {
-        using JNIType = CompileTimeString<'L','j','a','v','a','/','u','t','i','l','/','H','a','s','h','M','a','p'>;
+        using JNIType = CompileTimeString<'L','j','a','v','a','/','u','t','i','l','/','H','a','s','h','M','a','p',';'>;
         inline static jobject convert(const std::map<std::string,std::string> & obj) { return Utils::toHashMap(obj);}
     };
     
@@ -273,11 +305,25 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
         }
     };
     
+    // Raw jobject implementation (When the user wants one instead of auto conversion)
+    template <typename... Args>
+    struct JNICaller<JNIObjectPtr,Args...> {
+        static JNIObjectPtr callStatic(JNIEnv *env, jclass cls, jmethodID method, Args... v) {
+            return JNIObject::createWeak(env->CallStaticObjectMethod(cls, method, v...));
+        }
+        static JNIObjectPtr callInstance(JNIEnv *env, jobject instance, jmethodID method, Args... v) {
+            return JNIObject::createWeak(env->CallObjectMethod(instance, method, v...));
+        }
+        static JNIObjectPtr getField(JNIEnv * env, jobject instance, jfieldID fid) {
+            return JNIObject::createWeak(env->GetObjectField(instance, fid));
+        }
+    };
+    
     //generic pointer implementation (using jlong types)
     template <typename T, typename... Args>
     struct JNICaller<T*,Args...> {
         static T* callStatic(JNIEnv *env, jclass cls, jmethodID method, Args... v) {
-            return (T*)env->CallLongMethod(cls, method, v...);
+            return (T*)env->CallStaticLongMethod(cls, method, v...);
         }
         static T* callInstance(JNIEnv *env, jobject instance, jmethodID method, Args... v) {
             return (T*)env->CallLongMethod(instance, method, v...);
@@ -297,6 +343,7 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
             env->CallVoidMethod(instance, method, v...);
         }
     };
+    
     
     //primitive types implementations
     template <typename... Args>
@@ -531,46 +578,22 @@ template <typename C1, typename ...C> struct Concatenate<C1,C...>{
 
     }
     
-    //jobject global ref wrapper class
-    struct JNIObject {
-        std::string jniClassName;
-        jobject instance = nullptr;
-        
-        ~JNIObject() {
-            if (instance) {
-                JNIEnv* jniEnv = Utils::getJNIEnv();
-                jniEnv->DeleteGlobalRef(instance);
-            }
-        }
-        
-        static std::shared_ptr<JNIObject> create(jobject obj, const std::string & className)
-        {
-            JNIObject * result = new JNIObject();
-            JNIEnv* jniEnv = Utils::getJNIEnvAttach();
-            result->instance = jniEnv->NewGlobalRef(obj);
-            result->jniClassName = className;
-            return std::shared_ptr<JNIObject>(result);
-        }
-        
-        template<typename... Args> static std::shared_ptr<JNIObject> create(const std::string & className, Args ...v)
-        {
-            static constexpr uint8_t nargs = sizeof...(Args);
-            JNIObject * result = new JNIObject();
-            JNIEnv* jniEnv = Utils::getJNIEnvAttach();
-            SPJNIMethodInfo methodInfo = Utils::getMethodInfo(className, "<init>", getJNISignature<void,Args...>(v...));
-            JNIParamDestructor<nargs> paramDestructor(jniEnv);
-            result->instance = jniEnv->NewObject(methodInfo->classId, methodInfo->methodId, JNIParamConversor<Args>(v, paramDestructor)...);
-            result->instance = jniEnv->NewGlobalRef(result->instance);
-            result->jniClassName = className;
-            return std::shared_ptr<JNIObject>(result);
-        }
-        
-        template<typename T = void,typename... Args> inline T call(const std::string & methodName, Args... v)
-        {
-            return safejni::call<T, Args...>(instance, jniClassName, methodName, v...);
-        }
-        
-    };
+    // JNIObject templates
+    template<typename... Args> std::shared_ptr<JNIObject> JNIObject::create(const std::string & className, Args ...v)
+    {
+        static constexpr uint8_t nargs = sizeof...(Args);
+        JNIObject * result = new JNIObject();
+        JNIEnv* jniEnv = Utils::getJNIEnvAttach();
+        SPJNIMethodInfo methodInfo = Utils::getMethodInfo(className, "<init>", getJNISignature<void,Args...>(v...));
+        JNIParamDestructor<nargs> paramDestructor(jniEnv);
+        result->instance = jniEnv->NewObject(methodInfo->classId, methodInfo->methodId, JNIParamConversor<Args>(v, paramDestructor)...);
+        result->jniClassName = className;
+        result->makeGlobalRef();
+        return std::shared_ptr<JNIObject>(result);
+    }
     
-    typedef std::shared_ptr<JNIObject> SPJNIObject;
+    template<typename T,typename... Args> inline T JNIObject::call(const std::string & methodName, Args... v)
+    {
+        return safejni::call<T, Args...>(instance, jniClassName, methodName, v...);
+    }
 }
