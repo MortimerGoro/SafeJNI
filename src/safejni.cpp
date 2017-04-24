@@ -1,4 +1,4 @@
-/* 
+/*
  * SafeJNI is licensed under MIT licensed. See LICENSE.md file for more information.
  * Copyright (c) 2014 MortimerGoro
 */
@@ -14,8 +14,8 @@ using std::string;
 using std::vector;
 
 namespace safejni {
-    
-	JNIEnv* Utils::env = 0;
+
+    JNIEnv* Utils::env = 0;
     JavaVM* Utils::javaVM = 0;
 
 
@@ -23,19 +23,19 @@ namespace safejni {
     {
         Utils::init(vm, env);
     }
-    
+
     JNIMethodInfo::JNIMethodInfo(jclass classId, jmethodID methodId): classId(classId), methodId(methodId)
     {
-        
+
     }
-    
+
     JNIMethodInfo::~JNIMethodInfo()
     {
      	if (classId) {
      		Utils::getJNIEnv()->DeleteLocalRef(classId);
      	}
     }
-    
+
 
     JNIException::JNIException(const std::string & message): message(message)
     {
@@ -53,7 +53,7 @@ namespace safejni {
         Utils::env = jniEnv;
     }
 
-    JNIEnv * Utils::getJNIEnvAttach() 
+    JNIEnv * Utils::getJNIEnvAttach()
     {
         if (javaVM) {
             int status = javaVM->AttachCurrentThread(&env, NULL);
@@ -69,25 +69,25 @@ namespace safejni {
 	{
 	 	return env->NewStringUTF(str);
 	}
-    
+
     jobjectArray Utils::toJObjectArray(const std::vector<std::string> & data)
     {
         jclass classId = env->FindClass("java/lang/String");
         jint size = data.size();
         jobjectArray joa = env->NewObjectArray(size, classId, 0);
-        
+
         for (int i = 0; i < size; i++)
         {
             jstring jstr = toJString(data[i]);
             env->SetObjectArrayElement(joa, i, jstr);
-            
+
         }
         env->DeleteLocalRef(classId);
-        
+
         JNI_EXCEPTION_CHECK
         return joa;
     }
-    
+
     jbyteArray Utils::toJObjectArray(const std::vector<uint8_t> & data)
     {
         jbyteArray jba = env->NewByteArray(data.size());
@@ -101,14 +101,14 @@ namespace safejni {
         jclass classId = env->FindClass("java/util/HashMap");
         jmethodID methodId = env->GetMethodID(classId, "<init>", "()V");
         jobject hashmap = env->NewObject(classId, methodId);
-        
+
         methodId = env->GetMethodID(classId, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
         for (auto & item : data)
         {
             jstring key = env->NewStringUTF(item.first.c_str());
             jstring value = env->NewStringUTF(item.second.c_str());
             env->CallObjectMethod(hashmap, methodId, key, value);
-            
+
             env->DeleteLocalRef(key);
             env->DeleteLocalRef(value);
         }
@@ -116,7 +116,7 @@ namespace safejni {
         JNI_EXCEPTION_CHECK
         return hashmap;
     }
-    
+
     std::string Utils::toString(jstring str)
     {
         if (!str) {
@@ -132,13 +132,13 @@ namespace safejni {
         JNI_EXCEPTION_CHECK
         return s;
     }
-    
+
     std::vector<std::string> Utils::toVectorString(jobjectArray array)
     {
         std::vector<std::string> result;
         if (array) {
             jint length = env->GetArrayLength(array);
-            
+
             for (int i = 0; i < length; i++) {
                 jobject valueJObject = env->GetObjectArrayElement(array, i);
                     result.push_back(toString((jstring)valueJObject));
@@ -148,7 +148,7 @@ namespace safejni {
         JNI_EXCEPTION_CHECK
         return result;
     }
-    
+
     std::vector<uint8_t> Utils::toVectorByte(jbyteArray array)
     {
         if (!array) {
@@ -178,7 +178,7 @@ namespace safejni {
         std::vector<jobject> result;
         if (array) {
             jint length = env->GetArrayLength(array);
-            
+
             for (int i = 0; i < length; i++) {
                 jobject valueJObject = env->GetObjectArrayElement(array, i);
                 result.push_back(valueJObject);
@@ -186,7 +186,7 @@ namespace safejni {
         }
         return result;
     }
-    
+
 	SPJNIMethodInfo Utils::getStaticMethodInfo(const string& className, const string& methodName, const char * signature)
     {
         jclass classId = 0;
@@ -197,17 +197,17 @@ namespace safejni {
         if (!classId){
             throw JNIException(string("Could not find the given class: ") + className);
         }
-        
+
         methodId = env->GetStaticMethodID(classId, methodName.c_str(), signature);
         JNI_EXCEPTION_CHECK
-        
+
         if (!methodId){
             throw JNIException(string("Could not find the given '") + methodName + string("' static method in the given '") + className + string("' class using the '") + signature + string("' signature."));
         }
-        
+
         return SPJNIMethodInfo(new JNIMethodInfo(classId, methodId));
     }
-    
+
     SPJNIMethodInfo Utils::getMethodInfo(const string& className, const string& methodName, const char * signature)
     {
         jclass classId = 0;
@@ -218,16 +218,16 @@ namespace safejni {
         if (!classId){
             throw JNIException(string("Could not find the given class: ") + className);
         }
-        
+
         methodId = env->GetMethodID(classId, methodName.c_str(), signature);
         JNI_EXCEPTION_CHECK
-        
+
         if (!methodId){
             throw JNIException(string("Could not find the given '") + methodName + string("' static method in the given '") + className + string("' class using the '") + signature + string("' signature."));
         }
-        
+
         return SPJNIMethodInfo(new JNIMethodInfo(classId, methodId));
-    }   
+    }
 
     void Utils::checkException()
     {
@@ -241,7 +241,7 @@ namespace safejni {
             throw new JNIException(exceptionMessage);
         }
     }
-    
+
     // JNIObject
     JNIObject::~JNIObject() {
         if (instance) {
@@ -254,14 +254,14 @@ namespace safejni {
             }
         }
     }
-    
+
     void JNIObject::makeGlobalRef() {
         if (!globalRef) {
             this->instance = Utils::getJNIEnvAttach()->NewGlobalRef(this->instance);
             globalRef = true;
         }
     }
-    
+
     std::shared_ptr<JNIObject> JNIObject::create(jobject obj, const std::string & className)
     {
         JNIObject * result = new JNIObject();
@@ -271,7 +271,7 @@ namespace safejni {
         result->makeGlobalRef();
         return std::shared_ptr<JNIObject>(result);
     }
-    
+
     std::shared_ptr<JNIObject> JNIObject::createWeak(jobject obj)
     {
         JNIObject * result = new JNIObject();
@@ -281,7 +281,7 @@ namespace safejni {
 }
 
 extern "C"
-{   
+{
     jint JNI_OnLoad(JavaVM* vm, void* reserved)
     {
         JNIEnv* env;
@@ -292,5 +292,5 @@ extern "C"
         safejni::init(vm, env);
 
         return JNI_VERSION_1_6;
-    } 
+    }
 }
